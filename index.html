@@ -778,17 +778,51 @@
         let app, db, analytics;
         let firebaseReady = false;
 
-        try {
-            app = firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            if (typeof firebase.analytics === 'function') {
-                analytics = firebase.analytics();
+        // Wait for Firebase to load
+        function initializeFirebase() {
+            if (typeof firebase === 'undefined') {
+                console.error('Firebase SDK not loaded');
+                return false;
             }
-            firebaseReady = true;
-            console.log('Firebase initialized successfully');
-        } catch (error) {
-            console.error('Firebase initialization failed:', error);
-            firebaseReady = false;
+
+            try {
+                console.log('Initializing Firebase...');
+                console.log('Firebase config:', firebaseConfig);
+                
+                app = firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                
+                console.log('Firebase app:', app);
+                console.log('Firestore db:', db);
+                console.log('Firestore methods:', Object.getOwnPropertyNames(db));
+                
+                if (typeof firebase.analytics === 'function') {
+                    analytics = firebase.analytics();
+                }
+                
+                firebaseReady = true;
+                console.log('Firebase initialized successfully');
+                
+                // Test Firestore connection
+                testFirestoreConnection();
+                
+                return true;
+            } catch (error) {
+                console.error('Firebase initialization failed:', error);
+                firebaseReady = false;
+                return false;
+            }
+        }
+
+        // Test Firestore connection
+        async function testFirestoreConnection() {
+            try {
+                console.log('Testing Firestore connection...');
+                const testDoc = await db.collection('test').limit(1).get();
+                console.log('Firestore connection test successful');
+            } catch (error) {
+                console.error('Firestore connection test failed:', error);
+            }
         }
         let projects = [];
         let items = [];
@@ -853,24 +887,31 @@
 
         // Initialize Firebase with better error handling
         document.addEventListener('DOMContentLoaded', function() {
-            // Small delay to ensure Firebase is fully loaded
-            setTimeout(async function() {
-                if (firebaseReady) {
+            console.log('DOM loaded, checking Firebase...');
+            
+            // Wait a moment for Firebase SDK to fully load
+            setTimeout(function() {
+                const firebaseInitialized = initializeFirebase();
+                
+                if (firebaseInitialized) {
                     updateFirebaseStatus('loading', 'Loading data from Firebase...');
-                    const success = await loadDataFromFirebase();
-                    if (success) {
-                        showToast('success', 'Data berhasil dimuat dari Firebase');
-                    }
+                    loadDataFromFirebase().then(success => {
+                        if (success) {
+                            showToast('success', 'Data berhasil dimuat dari Firebase');
+                        }
+                        createCharts();
+                        updateDashboard();
+                        updateProjectSelects();
+                    });
                 } else {
                     updateFirebaseStatus('disconnected', 'Firebase tidak tersedia, menggunakan penyimpanan lokal');
                     loadDataFromLocal();
                     showToast('error', 'Menggunakan penyimpanan lokal saja');
+                    createCharts();
+                    updateDashboard();
+                    updateProjectSelects();
                 }
-                
-                createCharts();
-                updateDashboard();
-                updateProjectSelects();
-            }, 1000);
+            }, 500);
         });
 
         // Data persistence functions with Firebase
@@ -1027,17 +1068,24 @@
             projects.push(project);
             
             // Save to Firebase
-            const saved = await saveProjectToFirebase(project);
-            
-            // Also save to localStorage as backup
-            saveDataToLocal();
-            
-            hideLoading();
-            
-            if (saved) {
-                showToast('success', 'Proyek berhasil disimpan ke Firebase');
-            } else {
-                showToast('error', 'Proyek disimpan lokal, koneksi Firebase bermasalah');
+            try {
+                const saved = await saveProjectToFirebase(project);
+                
+                // Also save to localStorage as backup
+                saveDataToLocal();
+                
+                hideLoading();
+                
+                if (saved) {
+                    showToast('success', 'Proyek berhasil disimpan ke Firebase');
+                } else {
+                    showToast('error', 'Proyek disimpan lokal, koneksi Firebase bermasalah');
+                }
+            } catch (error) {
+                console.error('Error in saveProject:', error);
+                saveDataToLocal();
+                hideLoading();
+                showToast('error', 'Error: ' + error.message);
             }
             
             // Reset form
@@ -1097,23 +1145,38 @@
             if (confirm('Yakin ingin menghapus proyek ini? Data item terkait juga akan terhapus.')) {
                 showLoading();
                 
-                // Delete from Firebase
-                await deleteProjectFromFirebase(projectId);
-                
-                // Delete related items from Firebase
-                const relatedItems = items.filter(i => i.projectId === projectId);
-                for (const item of relatedItems) {
-                    await deleteItemFromFirebase(item.id);
+                try {
+                    // Delete from Firebase
+                    await deleteProjectFromFirebase(projectId);
+                    
+                    // Delete related items from Firebase
+                    const relatedItems = items.filter(i => i.projectId === projectId);
+                    for (const item of relatedItems) {
+                        await deleteItemFromFirebase(item.id);
+                    }
+                    
+                    // Update local arrays
+                    projects = projects.filter(p => p.id !== projectId);
+                    items = items.filter(i => i.projectId !== projectId);
+                    
+                    // Update localStorage backup
+                    saveDataToLocal();
+                    
+                    hideLoading();
+                    showToast('success', 'Proyek berhasil dihapus');
+                    
+                } catch (error) {
+                    console.error('Error in deleteProject:', error);
+                    
+                    // Update local arrays anyway
+                    projects = projects.filter(p => p.id !== projectId);
+                    items = items.filter(i => i.projectId !== projectId);
+                    saveDataToLocal();
+                    
+                    hideLoading();
+                    showToast('error', 'Proyek dihapus lokal, error Firebase: ' + error.message);
                 }
                 
-                // Update local arrays
-                projects = projects.filter(p => p.id !== projectId);
-                items = items.filter(i => i.projectId !== projectId);
-                
-                // Update localStorage backup
-                saveDataToLocal();
-                
-                hideLoading();
                 loadProjects();
                 updateDashboard();
                 updateProjectSelects();
@@ -1197,17 +1260,24 @@
             }
 
             // Save to Firebase
-            const saved = await saveItemToFirebase(item);
-            
-            // Update localStorage backup
-            saveDataToLocal();
-            
-            hideLoading();
-            
-            if (saved) {
-                showToast('success', 'Item berhasil disimpan ke Firebase');
-            } else {
-                showToast('error', 'Item disimpan lokal, koneksi Firebase bermasalah');
+            try {
+                const saved = await saveItemToFirebase(item);
+                
+                // Update localStorage backup
+                saveDataToLocal();
+                
+                hideLoading();
+                
+                if (saved) {
+                    showToast('success', 'Item berhasil disimpan ke Firebase');
+                } else {
+                    showToast('error', 'Item disimpan lokal, koneksi Firebase bermasalah');
+                }
+            } catch (error) {
+                console.error('Error in saveItem:', error);
+                saveDataToLocal();
+                hideLoading();
+                showToast('error', 'Error: ' + error.message);
             }
             
             // Reset form and close modal
@@ -1223,16 +1293,30 @@
             if (confirm('Yakin ingin menghapus item ini?')) {
                 showLoading();
                 
-                // Delete from Firebase
-                await deleteItemFromFirebase(itemId);
+                try {
+                    // Delete from Firebase
+                    await deleteItemFromFirebase(itemId);
+                    
+                    // Update local array
+                    items = items.filter(i => i.id !== itemId);
+                    
+                    // Update localStorage backup
+                    saveDataToLocal();
+                    
+                    hideLoading();
+                    showToast('success', 'Item berhasil dihapus');
+                    
+                } catch (error) {
+                    console.error('Error in deleteItem:', error);
+                    
+                    // Update local array anyway
+                    items = items.filter(i => i.id !== itemId);
+                    saveDataToLocal();
+                    
+                    hideLoading();
+                    showToast('error', 'Item dihapus lokal, error Firebase: ' + error.message);
+                }
                 
-                // Update local array
-                items = items.filter(i => i.id !== itemId);
-                
-                // Update localStorage backup
-                saveDataToLocal();
-                
-                hideLoading();
                 loadItems();
                 updateDashboard();
             }
@@ -1307,27 +1391,36 @@
 
             showLoading();
 
-            // Update items
-            const updatedItems = [];
-            items.forEach(item => {
-                if (item.projectId === projectId) {
-                    item.markup = markup;
-                    updatedItems.push(item);
+            try {
+                // Update items
+                const updatedItems = [];
+                items.forEach(item => {
+                    if (item.projectId === projectId) {
+                        item.markup = markup;
+                        updatedItems.push(item);
+                    }
+                });
+
+                // Save updated items to Firebase
+                for (const item of updatedItems) {
+                    await saveItemToFirebase(item);
                 }
-            });
+                
+                // Update localStorage backup
+                saveDataToLocal();
 
-            // Save updated items to Firebase
-            for (const item of updatedItems) {
-                await saveItemToFirebase(item);
+                hideLoading();
+                showToast('success', `Markup ${markup}% berhasil diterapkan`);
+                
+            } catch (error) {
+                console.error('Error in applyGlobalMarkup:', error);
+                saveDataToLocal();
+                hideLoading();
+                showToast('error', 'Markup diterapkan lokal, error Firebase: ' + error.message);
             }
-            
-            // Update localStorage backup
-            saveDataToLocal();
 
-            hideLoading();
             loadItems();
             updateDashboard();
-            alert(`Markup ${markup}% telah diterapkan ke semua item`);
         }
 
         // Calculator and analysis functions
