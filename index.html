@@ -8,31 +8,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCuFwg2lnAUPaL8vUeQl3qg7YRrh5jsj6c",
-            authDomain: "nalaaircondb.firebaseapp.com",
-            projectId: "nalaaircondb",
-            storageBucket: "nalaaircondb.firebasestorage.app",
-            messagingSenderId: "115578923963",
-            appId: "1:115578923963:web:92932277f7d8beff37b29e",
-            measurementId: "G-JC9PB6E9JR"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const analytics = getAnalytics(app);
-
-        // Make Firebase available globally
-        window.firebase = { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc };
-    </script>
+    <!-- Firebase SDK v9 - Compatibility Version -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
     <style>
         :root {
             --primary-blue: #1e3a8a;
@@ -784,13 +763,39 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuFwg2lnAUPaL8vUeQl3qg7YRrh5jsj6c",
+            authDomain: "nalaaircondb.firebaseapp.com",
+            projectId: "nalaaircondb",
+            storageBucket: "nalaaircondb.firebasestorage.app",
+            messagingSenderId: "115578923963",
+            appId: "1:115578923963:web:92932277f7d8beff37b29e",
+            measurementId: "G-JC9PB6E9JR"
+        };
+
+        // Initialize Firebase
+        let app, db, analytics;
+        let firebaseReady = false;
+
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            if (typeof firebase.analytics === 'function') {
+                analytics = firebase.analytics();
+            }
+            firebaseReady = true;
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization failed:', error);
+            firebaseReady = false;
+        }
         let projects = [];
         let items = [];
         let currentProject = null;
         let editingItem = null;
         let projectComparisonChart = null;
         let totalDistributionChart = null;
-        let firebaseReady = false;
 
         // Firebase helper functions
         function showLoading() {
@@ -846,13 +851,26 @@
             });
         }
 
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', async function() {
-            await waitForFirebase();
-            await loadData();
-            createCharts();
-            updateDashboard();
-            updateProjectSelects();
+        // Initialize Firebase with better error handling
+        document.addEventListener('DOMContentLoaded', function() {
+            // Small delay to ensure Firebase is fully loaded
+            setTimeout(async function() {
+                if (firebaseReady) {
+                    updateFirebaseStatus('loading', 'Loading data from Firebase...');
+                    const success = await loadDataFromFirebase();
+                    if (success) {
+                        showToast('success', 'Data berhasil dimuat dari Firebase');
+                    }
+                } else {
+                    updateFirebaseStatus('disconnected', 'Firebase tidak tersedia, menggunakan penyimpanan lokal');
+                    loadDataFromLocal();
+                    showToast('error', 'Menggunakan penyimpanan lokal saja');
+                }
+                
+                createCharts();
+                updateDashboard();
+                updateProjectSelects();
+            }, 1000);
         });
 
         // Data persistence functions with Firebase
@@ -980,13 +998,6 @@
                 }
             } else {
                 saveDataToLocal();
-            }
-        }
-
-        async function loadData() {
-            const success = await loadDataFromFirebase();
-            if (!success) {
-                loadDataFromLocal();
             }
         }
 
