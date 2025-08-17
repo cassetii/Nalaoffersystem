@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nala Aircon Offer System V1.0</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuFwg2lnAUPaL8vUeQl3qg7YRrh5jsj6c",
+            authDomain: "nalaaircondb.firebaseapp.com",
+            projectId: "nalaaircondb",
+            storageBucket: "nalaaircondb.firebasestorage.app",
+            messagingSenderId: "115578923963",
+            appId: "1:115578923963:web:92932277f7d8beff37b29e",
+            measurementId: "G-JC9PB6E9JR"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const analytics = getAnalytics(app);
+
+        // Make Firebase available globally
+        window.firebase = { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc };
+    </script>
+    <style>
+        :root {
+            --primary-blue: #1e3a8a;
+            --secondary-blue: #1e40af;
+            --dark-blue: #0f172a;
+            --light-blue: #3b82f6;
+            --accent-blue: #60a5fa;
+            --bg-dark: #0f1419;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--dark-blue) 100%);
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--light-blue), var(--accent-blue));
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, var(--secondary-blue), var(--light-blue));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #10b981, #34d399);
+            border: none;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f59e0b, #fbbf24);
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ef4444, #f87171);
+            border: none;
+        }
+
+        .form-control, .form-select {
+            background: var(--dark-blue);
+            border: 1px solid var(--border-color);
+            color: #ffffff !important;
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--dark-blue);
+            border-color: var(--light-blue);
+            color: #ffffff !important;
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+        }
+
+        .table-dark {
+            background: var(--card-bg);
+        }
+
+        .table-dark td, .table-dark th {
+            border-color: var(--border-color);
+        }
+
+        .sidebar {
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            min-height: calc(100vh - 76px);
+        }
+
+        .nav-pills .nav-link {
+            color: #94a3b8;
+            border-radius: 8px;
+            margin: 2px 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-pills .nav-link.active {
+            background: linear-gradient(45deg, var(--light-blue), var(--accent-blue));
+            color: white;
+        }
+
+        .nav-pills .nav-link:hover:not(.active) {
+            background: var(--border-color);
+            color: white;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: #ffffff !important;
+            margin-bottom: 1rem;
+        }
+
+        .stats-card * {
+            color: #ffffff !important;
+        }
+
+        .profit-positive {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .profit-negative {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .loading {
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--light-blue);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .header-title {
+            background: linear-gradient(45deg, #ffffff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+        }
+
+        /* Fix ALL text colors to white */
+        .text-dark, .modal-title, label, .form-label, h1, h2, h3, h4, h5, h6, 
+        .card-title, .card-text, .navbar-brand, .nav-link, p, span, div, 
+        td, th, .form-control, .form-select, option, .btn, .alert, 
+        .table, .table-dark, .table-dark td, .table-dark th, strong, small {
+            color: #ffffff !important;
+        }
+
+        .text-muted {
+            color: #cbd5e1 !important;
+        }
+
+        .btn-close {
+            filter: invert(1);
+        }
+
+        /* Ensure form controls have white text */
+        .form-control::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        .form-select option {
+            background: var(--dark-blue) !important;
+            color: #ffffff !important;
+        }
+
+        /* Badge colors */
+        .badge {
+            color: #ffffff !important;
+        }
+
+        /* Ensure all text in cards is white */
+        .card * {
+            color: #ffffff !important;
+        }
+
+        .card .text-muted {
+            color: #cbd5e1 !important;
+        }
+
+        /* Modal text colors */
+        .modal-body *, .modal-header *, .modal-footer * {
+            color: #ffffff !important;
+        }
+
+        /* Table text colors */
+        .table-dark, .table-dark > :not(caption) > * > * {
+            color: #ffffff !important;
+        }
+
+        /* Navigation text */
+        .navbar-nav .nav-link, .nav-pills .nav-link {
+            color: #ffffff !important;
+        }
+
+        .nav-pills .nav-link:not(.active) {
+            color: #cbd5e1 !important;
+        }
+
+        /* Alert text */
+        .alert * {
+            color: inherit !important;
+        }
+
+        /* Global text color enforcement */
+        * {
+            color: inherit;
+        }
+
+        body, .container-fluid {
+            color: #ffffff;
+        }
+
+        /* Specific overrides for any remaining dark text */
+        .text-secondary {
+            color: #cbd5e1 !important;
+        }
+
+        .text-primary {
+            color: #60a5fa !important;
+        }
+
+        /* Ensure all input elements have white text */
+        input, select, textarea, button {
+            color: #ffffff !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        /* Profit colors override */
+        .profit-positive {
+            color: #10b981 !important;
+            font-weight: bold;
+        }
+
+        .profit-negative {
+            color: #ef4444 !important;
+            font-weight: bold;
+        }
+
+        /* Firebase status indicator */
+        .firebase-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .firebase-connected {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+        }
+
+        .firebase-disconnected {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+
+        .firebase-loading {
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 20, 25, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(59, 130, 246, 0.3);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .chart-title {
+            text-align: center;
+            color: #ffffff !important;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand header-title">
+                <i class="fas fa-snowflake me-2"></i>
+                Nala Aircon Offer System V1.0
+            </span>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-link">
+                    <i class="fas fa-user-circle me-1"></i>
+                    Owner Nala Aircon
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-3">
+                <ul class="nav nav-pills flex-column" id="nav-tab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active w-100 text-start" id="dashboard-tab" data-bs-toggle="pill" data-bs-target="#dashboard" type="button" role="tab">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link w-100 text-start" id="projects-tab" data-bs-toggle="pill" data-bs-target="#projects" type="button" role="tab">
+                            <i class="fas fa-project-diagram me-2"></i>Proyek
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link w-100 text-start" id="items-tab" data-bs-toggle="pill" data-bs-target="#items" type="button" role="tab">
+                            <i class="fas fa-boxes me-2"></i>Item & RAB
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link w-100 text-start" id="calculator-tab" data-bs-toggle="pill" data-bs-target="#calculator" type="button" role="tab">
+                            <i class="fas fa-calculator me-2"></i>Kalkulator Profit
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 p-4">
+                <div class="tab-content" id="nav-tabContent">
+                    <!-- Dashboard Tab -->
+                    <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                        <h2 class="mb-4">
+                            <i class="fas fa-chart-line me-2"></i>Dashboard Overview
+                        </h2>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <h5><i class="fas fa-project-diagram me-2"></i>Total Proyek</h5>
+                                    <h3 id="totalProjects">0</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <h5><i class="fas fa-boxes me-2"></i>Total Item</h5>
+                                    <h3 id="totalItems">0</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <h5><i class="fas fa-money-bill-wave me-2"></i>Total Nilai</h5>
+                                    <h3 id="totalValue">Rp 0</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stats-card">
+                                    <h5><i class="fas fa-chart-pie me-2"></i>Margin Rata-rata</h5>
+                                    <h3 id="avgMargin">0%</h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-chart-bar me-2"></i>Analisis Material vs Penawaran vs Profit</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <div class="chart-title">Perbandingan per Proyek</div>
+                                            <canvas id="projectComparisonChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="chart-container">
+                                            <div class="chart-title">Distribusi Total</div>
+                                            <canvas id="totalDistributionChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-list me-2"></i>Proyek Terbaru</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="recentProjects">
+                                    <p class="text-muted">Belum ada proyek. Silakan buat proyek baru.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Projects Tab -->
+                    <div class="tab-pane fade" id="projects" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-project-diagram me-2"></i>Manajemen Proyek</h2>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#projectModal">
+                                <i class="fas fa-plus me-2"></i>Tambah Proyek
+                            </button>
+                        </div>
+
+                        <div class="row" id="projectsList">
+                            <!-- Projects will be dynamically loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Items Tab -->
+                    <div class="tab-pane fade" id="items" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-boxes me-2"></i>Item & RAB</h2>
+                            <div>
+                                <select class="form-select d-inline-block w-auto me-2" id="projectSelect">
+                                    <option value="">Pilih Proyek</option>
+                                </select>
+                                <button class="btn btn-primary" onclick="showItemModal()">
+                                    <i class="fas fa-plus me-2"></i>Tambah Item
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5>Daftar Item</h5>
+                                <div>
+                                    <span class="me-3">Markup Global:</span>
+                                    <input type="number" class="form-control d-inline-block w-auto" id="globalMarkup" placeholder="%" style="width: 80px;">
+                                    <button class="btn btn-warning btn-sm ms-2" onclick="applyGlobalMarkup()">
+                                        <i class="fas fa-percent me-1"></i>Terapkan
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Item</th>
+                                                <th>Kategori</th>
+                                                <th>Qty</th>
+                                                <th>Harga Modal</th>
+                                                <th>Biaya Tenaga</th>
+                                                <th>Markup %</th>
+                                                <th>Harga Jual</th>
+                                                <th>Profit</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="itemsTable">
+                                            <tr>
+                                                <td colspan="9" class="text-center text-muted">Pilih proyek dan tambah item untuk mulai</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Total Modal: <span id="totalCost">Rp 0</span></strong>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <strong>Total Jual: <span id="totalSell">Rp 0</span></strong><br>
+                                        <strong>Total Profit: <span id="totalProfit" class="profit-positive">Rp 0</span></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calculator Tab -->
+                    <div class="tab-pane fade" id="calculator" role="tabpanel">
+                        <h2 class="mb-4"><i class="fas fa-calculator me-2"></i>Kalkulator Profit & Analisis</h2>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-chart-pie me-2"></i>Analisis Profit per Proyek</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <select class="form-select mb-3" id="analysisProjectSelect">
+                                            <option value="">Pilih Proyek untuk Analisis</option>
+                                        </select>
+                                        <div id="profitAnalysis"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-percentage me-2"></i>Simulasi Markup</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Markup Simulasi (%)</label>
+                                            <input type="range" class="form-range" min="0" max="50" step="1" id="markupSlider" oninput="updateMarkupSimulation()">
+                                            <div class="d-flex justify-content-between">
+                                                <span>0%</span>
+                                                <span id="markupValue">25%</span>
+                                                <span>50%</span>
+                                            </div>
+                                        </div>
+                                        <div id="markupSimulation"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div class="modal fade" id="projectModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tambah Proyek Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="projectForm">
+                        <div class="mb-3">
+                            <label class="form-label">Nama Proyek</label>
+                            <input type="text" class="form-control" id="projectName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Klien</label>
+                            <input type="text" class="form-control" id="projectClient" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Lokasi</label>
+                            <input type="text" class="form-control" id="projectLocation" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="projectDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveProject()">
+                        <i class="fas fa-save me-1"></i>Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Modal -->
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemModalTitle">Tambah Item Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="itemForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Nama Item</label>
+                                    <input type="text" class="form-control" id="itemName" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Kategori</label>
+                                    <select class="form-select" id="itemCategory" required>
+                                        <option value="unit-ac">Unit AC</option>
+                                        <option value="instalasi">Instalasi</option>
+                                        <option value="material">Material</option>
+                                        <option value="aksesori">Aksesori</option>
+                                        <option value="jasa">Jasa</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" class="form-control" id="itemQty" min="1" value="1" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Satuan</label>
+                                    <select class="form-select" id="itemUnit">
+                                        <option value="unit">Unit</option>
+                                        <option value="meter">Meter</option>
+                                        <option value="set">Set</option>
+                                        <option value="pcs">Pcs</option>
+                                        <option value="paket">Paket</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Markup (%)</label>
+                                    <input type="number" class="form-control" id="itemMarkup" min="0" max="100" value="20">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Harga Modal (Rp)</label>
+                                    <input type="number" class="form-control" id="itemCost" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Biaya Tenaga Kerja (Rp)</label>
+                                    <input type="number" class="form-control" id="itemLabor" min="0" value="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Catatan</label>
+                            <textarea class="form-control" id="itemNotes" rows="2"></textarea>
+                        </div>
+                        <div class="alert alert-info">
+                            <strong>Preview:</strong><br>
+                            Harga Jual: <span id="previewSellPrice">Rp 0</span><br>
+                            Profit: <span id="previewProfit">Rp 0</span>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button onclick="saveItem()" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Status Indicator -->
+    <div id="firebaseStatus" class="firebase-status firebase-loading">
+        <i class="fas fa-cloud me-1"></i>Connecting to Firebase...
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="text-center">
+            <div class="loading-spinner"></div>
+            <p class="mt-3 text-white">Memuat data...</p>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="successToast" class="toast" role="alert">
+            <div class="toast-header bg-success text-white">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong class="me-auto">Berhasil</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body bg-success text-white" id="successMessage">
+                Data berhasil disimpan ke Firebase
+            </div>
+        </div>
+        
+        <div id="errorToast" class="toast" role="alert">
+            <div class="toast-header bg-danger text-white">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong class="me-auto">Error</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body bg-danger text-white" id="errorMessage">
+                Gagal menyimpan data
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let projects = [];
+        let items = [];
+        let currentProject = null;
+        let editingItem = null;
+        let projectComparisonChart = null;
+        let totalDistributionChart = null;
+        let firebaseReady = false;
+
+        // Firebase helper functions
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function showToast(type, message) {
+            const toastElement = document.getElementById(type + 'Toast');
+            const messageElement = document.getElementById(type + 'Message');
+            messageElement.textContent = message;
+            
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+        }
+
+        function updateFirebaseStatus(status, message) {
+            const statusElement = document.getElementById('firebaseStatus');
+            statusElement.className = `firebase-status firebase-${status}`;
+            
+            const icons = {
+                connected: 'fa-cloud-check',
+                disconnected: 'fa-cloud-exclamation',
+                loading: 'fa-cloud'
+            };
+            
+            statusElement.innerHTML = `<i class="fas ${icons[status]} me-1"></i>${message}`;
+            
+            // Auto hide after 3 seconds if connected
+            if (status === 'connected') {
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Wait for Firebase to be ready
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                const checkFirebase = () => {
+                    if (window.firebase) {
+                        firebaseReady = true;
+                        updateFirebaseStatus('connected', 'Connected to Firebase');
+                        resolve();
+                    } else {
+                        setTimeout(checkFirebase, 100);
+                    }
+                };
+                checkFirebase();
+            });
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', async function() {
+            await waitForFirebase();
+            await loadData();
+            createCharts();
+            updateDashboard();
+            updateProjectSelects();
+        });
+
+        // Data persistence functions with Firebase
+        async function saveProjectToFirebase(project) {
+            if (!firebaseReady) return false;
+            
+            try {
+                const { db, collection, setDoc, doc } = window.firebase;
+                await setDoc(doc(db, 'projects', project.id.toString()), project);
+                return true;
+            } catch (error) {
+                console.error('Error saving project to Firebase:', error);
+                updateFirebaseStatus('disconnected', 'Failed to save project');
+                return false;
+            }
+        }
+
+        async function saveItemToFirebase(item) {
+            if (!firebaseReady) return false;
+            
+            try {
+                const { db, collection, setDoc, doc } = window.firebase;
+                await setDoc(doc(db, 'items', item.id.toString()), item);
+                return true;
+            } catch (error) {
+                console.error('Error saving item to Firebase:', error);
+                updateFirebaseStatus('disconnected', 'Failed to save item');
+                return false;
+            }
+        }
+
+        async function loadDataFromFirebase() {
+            if (!firebaseReady) return false;
+            
+            try {
+                showLoading();
+                const { db, collection, getDocs } = window.firebase;
+                
+                // Load projects
+                const projectsSnapshot = await getDocs(collection(db, 'projects'));
+                projects = [];
+                projectsSnapshot.forEach((doc) => {
+                    projects.push({id: parseInt(doc.id), ...doc.data()});
+                });
+                
+                // Load items
+                const itemsSnapshot = await getDocs(collection(db, 'items'));
+                items = [];
+                itemsSnapshot.forEach((doc) => {
+                    items.push({id: parseInt(doc.id), ...doc.data()});
+                });
+                
+                hideLoading();
+                updateFirebaseStatus('connected', 'Data loaded from Firebase');
+                return true;
+            } catch (error) {
+                console.error('Error loading data from Firebase:', error);
+                hideLoading();
+                updateFirebaseStatus('disconnected', 'Failed to load data');
+                
+                // Fallback to localStorage
+                loadDataFromLocal();
+                return false;
+            }
+        }
+
+        async function deleteProjectFromFirebase(projectId) {
+            if (!firebaseReady) return false;
+            
+            try {
+                const { db, doc, deleteDoc } = window.firebase;
+                await deleteDoc(doc(db, 'projects', projectId.toString()));
+                return true;
+            } catch (error) {
+                console.error('Error deleting project from Firebase:', error);
+                return false;
+            }
+        }
+
+        async function deleteItemFromFirebase(itemId) {
+            if (!firebaseReady) return false;
+            
+            try {
+                const { db, doc, deleteDoc } = window.firebase;
+                await deleteDoc(doc(db, 'items', itemId.toString()));
+                return true;
+            } catch (error) {
+                console.error('Error deleting item from Firebase:', error);
+                return false;
+            }
+        }
+
+        // Fallback localStorage functions
+        function saveDataToLocal() {
+            localStorage.setItem('nala-projects', JSON.stringify(projects));
+            localStorage.setItem('nala-items', JSON.stringify(items));
+        }
+
+        function loadDataFromLocal() {
+            const savedProjects = localStorage.getItem('nala-projects');
+            const savedItems = localStorage.getItem('nala-items');
+            
+            if (savedProjects) {
+                projects = JSON.parse(savedProjects);
+            }
+            
+            if (savedItems) {
+                items = JSON.parse(savedItems);
+            }
+        }
+
+        // Main data functions
+        async function saveData() {
+            // Try Firebase first, fallback to localStorage
+            if (firebaseReady) {
+                // Save all projects and items to Firebase
+                const projectPromises = projects.map(project => saveProjectToFirebase(project));
+                const itemPromises = items.map(item => saveItemToFirebase(item));
+                
+                try {
+                    await Promise.all([...projectPromises, ...itemPromises]);
+                } catch (error) {
+                    console.error('Some data failed to save to Firebase, using localStorage as backup');
+                    saveDataToLocal();
+                }
+            } else {
+                saveDataToLocal();
+            }
+        }
+
+        async function loadData() {
+            const success = await loadDataFromFirebase();
+            if (!success) {
+                loadDataFromLocal();
+            }
+        }
+
+        // Project functions
+        async function saveProject() {
+            const name = document.getElementById('projectName').value;
+            const client = document.getElementById('projectClient').value;
+            const location = document.getElementById('projectLocation').value;
+            const description = document.getElementById('projectDescription').value;
+
+            if (!name || !client || !location) {
+                alert('Mohon lengkapi semua field yang wajib diisi');
+                return;
+            }
+
+            showLoading();
+
+            const project = {
+                id: Date.now(),
+                name,
+                client,
+                location,
+                description,
+                createdAt: new Date().toISOString()
+            };
+
+            projects.push(project);
+            
+            // Save to Firebase
+            const saved = await saveProjectToFirebase(project);
+            
+            // Also save to localStorage as backup
+            saveDataToLocal();
+            
+            hideLoading();
+            
+            if (saved) {
+                showToast('success', 'Proyek berhasil disimpan ke Firebase');
+            } else {
+                showToast('error', 'Proyek disimpan lokal, koneksi Firebase bermasalah');
+            }
+            
+            // Reset form
+            document.getElementById('projectForm').reset();
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('projectModal'));
+            modal.hide();
+            
+            updateDashboard();
+            updateProjectSelects();
+            loadProjects();
+        }
+
+        function loadProjects() {
+            const container = document.getElementById('projectsList');
+            
+            if (projects.length === 0) {
+                container.innerHTML = '<div class="col-12"><p class="text-muted">Belum ada proyek. Silakan buat proyek baru.</p></div>';
+                return;
+            }
+
+            container.innerHTML = projects.map(project => `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${project.name}</h5>
+                            <p class="card-text">
+                                <strong>Klien:</strong> ${project.client}<br>
+                                <strong>Lokasi:</strong> ${project.location}<br>
+                                <small class="text-muted">${new Date(project.createdAt).toLocaleDateString('id-ID')}</small>
+                            </p>
+                            <div class="btn-group w-100">
+                                <button class="btn btn-primary btn-sm" onclick="selectProject(${project.id})">
+                                    <i class="fas fa-folder-open me-1"></i>Buka
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteProject(${project.id})">
+                                    <i class="fas fa-trash me-1"></i>Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectProject(projectId) {
+            currentProject = projects.find(p => p.id === projectId);
+            document.getElementById('projectSelect').value = projectId;
+            
+            // Switch to items tab
+            document.getElementById('items-tab').click();
+            loadItems();
+        }
+
+        async function deleteProject(projectId) {
+            if (confirm('Yakin ingin menghapus proyek ini? Data item terkait juga akan terhapus.')) {
+                showLoading();
+                
+                // Delete from Firebase
+                await deleteProjectFromFirebase(projectId);
+                
+                // Delete related items from Firebase
+                const relatedItems = items.filter(i => i.projectId === projectId);
+                for (const item of relatedItems) {
+                    await deleteItemFromFirebase(item.id);
+                }
+                
+                // Update local arrays
+                projects = projects.filter(p => p.id !== projectId);
+                items = items.filter(i => i.projectId !== projectId);
+                
+                // Update localStorage backup
+                saveDataToLocal();
+                
+                hideLoading();
+                loadProjects();
+                updateDashboard();
+                updateProjectSelects();
+            }
+        }
+
+        // Item functions
+        function showItemModal(itemId = null) {
+            const selectedProject = document.getElementById('projectSelect').value;
+            
+            if (!selectedProject) {
+                alert('Pilih proyek terlebih dahulu');
+                return;
+            }
+
+            editingItem = itemId;
+            const modal = new bootstrap.Modal(document.getElementById('itemModal'));
+            
+            if (itemId) {
+                const item = items.find(i => i.id === itemId);
+                document.getElementById('itemModalTitle').textContent = 'Edit Item';
+                
+                // Fill form with existing data
+                document.getElementById('itemName').value = item.name;
+                document.getElementById('itemCategory').value = item.category;
+                document.getElementById('itemQty').value = item.qty;
+                document.getElementById('itemUnit').value = item.unit;
+                document.getElementById('itemMarkup').value = item.markup;
+                document.getElementById('itemCost').value = item.costPrice;
+                document.getElementById('itemLabor').value = item.laborCost;
+                document.getElementById('itemNotes').value = item.notes || '';
+            } else {
+                document.getElementById('itemModalTitle').textContent = 'Tambah Item Baru';
+                document.getElementById('itemForm').reset();
+                document.getElementById('itemQty').value = 1;
+                document.getElementById('itemMarkup').value = 20;
+                document.getElementById('itemLabor').value = 0;
+            }
+            
+            updatePreview();
+            modal.show();
+        }
+
+        async function saveItem() {
+            const projectId = parseInt(document.getElementById('projectSelect').value);
+            const name = document.getElementById('itemName').value;
+            const category = document.getElementById('itemCategory').value;
+            const qty = parseInt(document.getElementById('itemQty').value);
+            const unit = document.getElementById('itemUnit').value;
+            const markup = parseFloat(document.getElementById('itemMarkup').value);
+            const costPrice = parseFloat(document.getElementById('itemCost').value);
+            const laborCost = parseFloat(document.getElementById('itemLabor').value);
+            const notes = document.getElementById('itemNotes').value;
+
+            if (!name || !costPrice || costPrice < 0) {
+                alert('Mohon lengkapi semua field dengan benar');
+                return;
+            }
+
+            showLoading();
+
+            const item = {
+                id: editingItem || Date.now(),
+                projectId,
+                name,
+                category,
+                qty,
+                unit,
+                markup,
+                costPrice,
+                laborCost,
+                notes,
+                updatedAt: new Date().toISOString()
+            };
+
+            if (editingItem) {
+                const index = items.findIndex(i => i.id === editingItem);
+                items[index] = item;
+            } else {
+                items.push(item);
+            }
+
+            // Save to Firebase
+            const saved = await saveItemToFirebase(item);
+            
+            // Update localStorage backup
+            saveDataToLocal();
+            
+            hideLoading();
+            
+            if (saved) {
+                showToast('success', 'Item berhasil disimpan ke Firebase');
+            } else {
+                showToast('error', 'Item disimpan lokal, koneksi Firebase bermasalah');
+            }
+            
+            // Reset form and close modal
+            document.getElementById('itemForm').reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('itemModal'));
+            modal.hide();
+            
+            loadItems();
+            updateDashboard();
+        }
+
+        async function deleteItem(itemId) {
+            if (confirm('Yakin ingin menghapus item ini?')) {
+                showLoading();
+                
+                // Delete from Firebase
+                await deleteItemFromFirebase(itemId);
+                
+                // Update local array
+                items = items.filter(i => i.id !== itemId);
+                
+                // Update localStorage backup
+                saveDataToLocal();
+                
+                hideLoading();
+                loadItems();
+                updateDashboard();
+            }
+        }
+
+        function loadItems() {
+            const projectId = parseInt(document.getElementById('projectSelect').value);
+            const tbody = document.getElementById('itemsTable');
+            
+            if (!projectId) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Pilih proyek terlebih dahulu</td></tr>';
+                return;
+            }
+
+            const projectItems = items.filter(i => i.projectId === projectId);
+            
+            if (projectItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Belum ada item. Tambah item untuk mulai.</td></tr>';
+                return;
+            }
+
+            let totalCost = 0;
+            let totalSell = 0;
+
+            tbody.innerHTML = projectItems.map(item => {
+                const totalItemCost = (item.costPrice + item.laborCost) * item.qty;
+                const sellPrice = totalItemCost * (1 + item.markup / 100);
+                const profit = sellPrice - totalItemCost;
+                
+                totalCost += totalItemCost;
+                totalSell += sellPrice;
+
+                return `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td><span class="badge bg-secondary">${item.category}</span></td>
+                        <td>${item.qty} ${item.unit}</td>
+                        <td>${formatCurrency(item.costPrice)}</td>
+                        <td>${formatCurrency(item.laborCost)}</td>
+                        <td>${item.markup}%</td>
+                        <td><strong>${formatCurrency(sellPrice)}</strong></td>
+                        <td class="${profit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(profit)}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm me-1" onclick="showItemModal(${item.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteItem(${item.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Update totals
+            document.getElementById('totalCost').textContent = formatCurrency(totalCost);
+            document.getElementById('totalSell').textContent = formatCurrency(totalSell);
+            const totalProfit = totalSell - totalCost;
+            const profitElement = document.getElementById('totalProfit');
+            profitElement.textContent = formatCurrency(totalProfit);
+            profitElement.className = totalProfit >= 0 ? 'profit-positive' : 'profit-negative';
+        }
+
+        async function applyGlobalMarkup() {
+            const markup = parseFloat(document.getElementById('globalMarkup').value);
+            const projectId = parseInt(document.getElementById('projectSelect').value);
+            
+            if (!markup || !projectId) {
+                alert('Masukkan nilai markup dan pilih proyek');
+                return;
+            }
+
+            showLoading();
+
+            // Update items
+            const updatedItems = [];
+            items.forEach(item => {
+                if (item.projectId === projectId) {
+                    item.markup = markup;
+                    updatedItems.push(item);
+                }
+            });
+
+            // Save updated items to Firebase
+            for (const item of updatedItems) {
+                await saveItemToFirebase(item);
+            }
+            
+            // Update localStorage backup
+            saveDataToLocal();
+
+            hideLoading();
+            loadItems();
+            updateDashboard();
+            alert(`Markup ${markup}% telah diterapkan ke semua item`);
+        }
+
+        // Calculator and analysis functions
+        function updateMarkupSimulation() {
+            const slider = document.getElementById('markupSlider');
+            const value = slider.value;
+            document.getElementById('markupValue').textContent = value + '%';
+            
+            const projectId = parseInt(document.getElementById('analysisProjectSelect').value);
+            if (!projectId) return;
+
+            const projectItems = items.filter(i => i.projectId === projectId);
+            let simulationHTML = '<h6>Simulasi dengan Markup ' + value + '%:</h6>';
+            
+            let totalCost = 0;
+            let totalSell = 0;
+
+            projectItems.forEach(item => {
+                const itemCost = (item.costPrice + item.laborCost) * item.qty;
+                const sellPrice = itemCost * (1 + parseFloat(value) / 100);
+                totalCost += itemCost;
+                totalSell += sellPrice;
+            });
+
+            const profit = totalSell - totalCost;
+            const margin = totalCost > 0 ? ((profit / totalSell) * 100) : 0;
+
+            simulationHTML += `
+                <div class="mt-2">
+                    <p><strong>Total Modal:</strong> ${formatCurrency(totalCost)}</p>
+                    <p><strong>Total Jual:</strong> ${formatCurrency(totalSell)}</p>
+                    <p><strong>Profit:</strong> <span class="${profit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(profit)}</span></p>
+                    <p><strong>Margin:</strong> ${margin.toFixed(2)}%</p>
+                </div>
+            `;
+
+            document.getElementById('markupSimulation').innerHTML = simulationHTML;
+        }
+
+        // Chart functions
+        function createCharts() {
+            // Project Comparison Chart
+            const ctx1 = document.getElementById('projectComparisonChart').getContext('2d');
+            projectComparisonChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Material Cost',
+                            data: [],
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Penawaran',
+                            data: [],
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Profit',
+                            data: [],
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#ffffff',
+                                callback: function(value) {
+                                    return formatChartCurrency(value);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Total Distribution Chart
+            const ctx2 = document.getElementById('totalDistributionChart').getContext('2d');
+            totalDistributionChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Material Cost', 'Profit'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(16, 185, 129, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ffffff'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            if (!projectComparisonChart || !totalDistributionChart) return;
+
+            // Calculate data for each project
+            const projectData = projects.map(project => {
+                const projectItems = items.filter(i => i.projectId === project.id);
+                let totalCost = 0;
+                let totalSell = 0;
+
+                projectItems.forEach(item => {
+                    const itemCost = (item.costPrice + item.laborCost) * item.qty;
+                    const sellPrice = itemCost * (1 + item.markup / 100);
+                    totalCost += itemCost;
+                    totalSell += sellPrice;
+                });
+
+                return {
+                    name: project.name,
+                    cost: totalCost,
+                    sell: totalSell,
+                    profit: totalSell - totalCost
+                };
+            });
+
+            // Update project comparison chart
+            projectComparisonChart.data.labels = projectData.map(p => p.name);
+            projectComparisonChart.data.datasets[0].data = projectData.map(p => p.cost);
+            projectComparisonChart.data.datasets[1].data = projectData.map(p => p.sell);
+            projectComparisonChart.data.datasets[2].data = projectData.map(p => p.profit);
+            projectComparisonChart.update();
+
+            // Update total distribution chart
+            const totalMaterialCost = projectData.reduce((sum, p) => sum + p.cost, 0);
+            const totalProfit = projectData.reduce((sum, p) => sum + p.profit, 0);
+            
+            totalDistributionChart.data.datasets[0].data = [totalMaterialCost, totalProfit];
+            totalDistributionChart.update();
+        }
+
+        function formatChartCurrency(value) {
+            return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+        }
+
+        // Utility functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function updateDashboard() {
+            document.getElementById('totalProjects').textContent = projects.length;
+            document.getElementById('totalItems').textContent = items.length;
+            
+            const totalValue = items.reduce((sum, item) => {
+                const itemCost = (item.costPrice + item.laborCost) * item.qty;
+                const sellPrice = itemCost * (1 + item.markup / 100);
+                return sum + sellPrice;
+            }, 0);
+            
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+            
+            const avgMargin = items.length > 0 ? 
+                items.reduce((sum, item) => sum + item.markup, 0) / items.length : 0;
+            document.getElementById('avgMargin').textContent = avgMargin.toFixed(1) + '%';
+
+            // Update recent projects
+            const recentContainer = document.getElementById('recentProjects');
+            if (projects.length === 0) {
+                recentContainer.innerHTML = '<p class="text-muted">Belum ada proyek. Silakan buat proyek baru.</p>';
+            } else {
+                const recent = projects.slice(-3).reverse();
+                recentContainer.innerHTML = recent.map(project => `
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                        <div>
+                            <strong>${project.name}</strong><br>
+                            <small class="text-muted">${project.client} - ${new Date(project.createdAt).toLocaleDateString('id-ID')}</small>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="selectProject(${project.id})">
+                            <i class="fas fa-folder-open"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            // Update charts
+            updateCharts();
+        }
+
+        function updateProjectSelects() {
+            const selects = ['projectSelect', 'analysisProjectSelect'];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                const currentValue = select.value;
+                
+                select.innerHTML = '<option value="">Pilih Proyek</option>' +
+                    projects.map(p => `<option value="${p.id}">${p.name} - ${p.client}</option>`).join('');
+                
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        function updatePreview() {
+            const costPrice = parseFloat(document.getElementById('itemCost').value) || 0;
+            const laborCost = parseFloat(document.getElementById('itemLabor').value) || 0;
+            const markup = parseFloat(document.getElementById('itemMarkup').value) || 0;
+            const qty = parseInt(document.getElementById('itemQty').value) || 1;
+            
+            const totalCost = (costPrice + laborCost) * qty;
+            const sellPrice = totalCost * (1 + markup / 100);
+            const profit = sellPrice - totalCost;
+            
+            document.getElementById('previewSellPrice').textContent = formatCurrency(sellPrice);
+            document.getElementById('previewProfit').textContent = formatCurrency(profit);
+        }
+
+        // Event listeners
+        document.getElementById('projectSelect').addEventListener('change', function() {
+            currentProject = projects.find(p => p.id === parseInt(this.value));
+            loadItems();
+        });
+
+        document.getElementById('analysisProjectSelect').addEventListener('change', function() {
+            const projectId = parseInt(this.value);
+            if (!projectId) return;
+            
+            const projectItems = items.filter(i => i.projectId === projectId);
+            let analysisHTML = '';
+            
+            if (projectItems.length === 0) {
+                analysisHTML = '<p class="text-muted">Proyek ini belum memiliki item.</p>';
+            } else {
+                let totalCost = 0;
+                let totalSell = 0;
+                
+                projectItems.forEach(item => {
+                    const itemCost = (item.costPrice + item.laborCost) * item.qty;
+                    const sellPrice = itemCost * (1 + item.markup / 100);
+                    totalCost += itemCost;
+                    totalSell += sellPrice;
+                });
+                
+                const profit = totalSell - totalCost;
+                const margin = totalCost > 0 ? ((profit / totalSell) * 100) : 0;
+                
+                analysisHTML = `
+                    <h6>Analisis Profit:</h6>
+                    <p><strong>Total Modal:</strong> ${formatCurrency(totalCost)}</p>
+                    <p><strong>Total Jual:</strong> ${formatCurrency(totalSell)}</p>
+                    <p><strong>Total Profit:</strong> <span class="${profit >= 0 ? 'profit-positive' : 'profit-negative'}">${formatCurrency(profit)}</span></p>
+                    <p><strong>Margin Profit:</strong> ${margin.toFixed(2)}%</p>
+                    <p><strong>Jumlah Item:</strong> ${projectItems.length}</p>
+                `;
+            }
+            
+            document.getElementById('profitAnalysis').innerHTML = analysisHTML;
+            updateMarkupSimulation();
+        });
+
+        // Form preview updates
+        ['itemCost', 'itemLabor', 'itemMarkup', 'itemQty'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updatePreview);
+        });
+
+        // Tab change handlers
+        document.getElementById('projects-tab').addEventListener('click', loadProjects);
+    </script>
+</body>
+</html>
